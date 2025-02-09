@@ -17,7 +17,7 @@ class Appointment:
                f"Client: {self.client}\n" \
                f"Agent: {self.agent}\n" \
                f"Property ID: {self.property_id}\n" \
-               f"Date and Time: {self.date_time.strftime('%Y-%m-%d %H:%M:%S')}"  # Corrected strftime
+               f"Date and Time: {self.date_time}"  # Corrected strftime
 
     @staticmethod
     def create_appointment_objects():

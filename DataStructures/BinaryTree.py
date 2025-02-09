@@ -3,6 +3,7 @@ class TreeNode:
         self.value = value  # The object stored in the node
         self.left = None  # Left child
         self.right = None  # Right child
+        self.height = 1  # Height of node (for balancing)
 
 class BinaryTree:
     def __init__(self, sortable_property):
@@ -14,75 +15,117 @@ class BinaryTree:
     
     def insert(self, obj):
         if not hasattr(obj, self.sortable_property):
-            raise ValueError(f"Object must have a '{self.sortable_property}' attribute")  # Ensure object has the sortable property
-        
-        if self.root is None:
-            self.root = TreeNode(obj)  # Set root if tree is empty
-        else:
-            self._insert_recursive(self.root, obj)  # Recursively insert into the tree
+            raise ValueError(f"Object must have a '{self.sortable_property}' attribute")
+        self.root = self._insert_recursive(self.root, obj)
     
     def _insert_recursive(self, node, obj):
-        if self._get_key(obj) < self._get_key(node.value):  # Insert into left subtree if key is smaller
-            if node.left is None:
-                node.left = TreeNode(obj)  # Create new node if left is empty
-            else:
-                self._insert_recursive(node.left, obj)  # Recursively insert into left subtree
+        if node is None:
+            return TreeNode(obj)
+        
+        key = self._get_key(obj)
+        if key < self._get_key(node.value):
+            node.left = self._insert_recursive(node.left, obj)
         else:
-            if node.right is None:
-                node.right = TreeNode(obj)  # Create new node if right is empty
+            node.right = self._insert_recursive(node.right, obj)
+        
+        # Update height and balance the node
+        return self._balance(node)
+    
+    def delete(self, key):
+        self.root = self._delete_recursive(self.root, key)
+    
+    def _delete_recursive(self, node, key):
+        if node is None:
+            return None
+        
+        if key < self._get_key(node.value):
+            node.left = self._delete_recursive(node.left, key)
+        elif key > self._get_key(node.value):
+            node.right = self._delete_recursive(node.right, key)
+        else:
+            # Node to delete found
+            if node.left is None:
+                return node.right
+            elif node.right is None:
+                return node.left
             else:
-                self._insert_recursive(node.right, obj)  # Recursively insert into right subtree
+                # Node has two children, find the inorder successor
+                successor = self._find_min_node(node.right)
+                node.value = successor.value
+                node.right = self._delete_recursive(node.right, self._get_key(successor.value))
+        
+        # Update height and balance the node
+        return self._balance(node)
+
+
+    def _get_height(self, node):
+        return node.height if node else 0
+    
+    def _get_balance_factor(self, node):
+        return self._get_height(node.left) - self._get_height(node.right) if node else 0
+    
+    def _balance(self, node):
+        # Update height
+        node.height = 1 + max(self._get_height(node.left), self._get_height(node.right))
+        
+        # Get balance factor
+        balance = self._get_balance_factor(node)
+        
+        # Perform rotations if unbalanced
+        if balance > 1:  # Left heavy
+            if self._get_balance_factor(node.left) < 0:  # Left-Right case
+                node.left = self._rotate_left(node.left)
+            return self._rotate_right(node)
+        
+        if balance < -1:  # Right heavy
+            if self._get_balance_factor(node.right) > 0:  # Right-Left case
+                node.right = self._rotate_right(node.right)
+            return self._rotate_left(node)
+        
+        return node
+    
+    def _rotate_left(self, z):
+        y = z.right
+        T2 = y.left
+        y.left = z
+        z.right = T2
+        z.height = 1 + max(self._get_height(z.left), self._get_height(z.right))
+        y.height = 1 + max(self._get_height(y.left), self._get_height(y.right))
+        return y
+    
+    def _rotate_right(self, z):
+        y = z.left
+        T3 = y.right
+        y.right = z
+        z.left = T3
+        z.height = 1 + max(self._get_height(z.left), self._get_height(z.right))
+        y.height = 1 + max(self._get_height(y.left), self._get_height(y.right))
+        return y
     
     def find(self, key):
-        return self._find_recursive(self.root, key)  # Start recursive search from root
+        return self._find_recursive(self.root, key)
     
     def _find_recursive(self, node, key):
         if node is None:
-            return None  # Return None if key is not found
+            return None
         if key == self._get_key(node.value):
-            return node.value  # Return value if key matches
+            return node.value
         elif key < self._get_key(node.value):
-            return self._find_recursive(node.left, key)  # Search in left subtree
+            return self._find_recursive(node.left, key)
         else:
-            return self._find_recursive(node.right, key)  # Search in right subtree
-    
-    def remove(self, key):
-        self.root = self._remove_recursive(self.root, key)  # Start recursive removal from root
-    
-    def _remove_recursive(self, node, key):
-        if node is None:
-            return None  # Return None if node is not found
-        
-        if key < self._get_key(node.value):
-            node.left = self._remove_recursive(node.left, key)  # Search in left subtree
-        elif key > self._get_key(node.value):
-            node.right = self._remove_recursive(node.right, key)  # Search in right subtree
-        else:
-            if node.left is None:
-                return node.right  # Replace node with right child if left is empty
-            elif node.right is None:
-                return node.left  # Replace node with left child if right is empty
-            min_larger_node = self._find_min(node.right)  # Find the smallest value in the right subtree
-            node.value = min_larger_node.value  # Replace current node with that smallest value
-            node.right = self._remove_recursive(node.right, self._get_key(min_larger_node.value))  # Remove the duplicate node
-        return node  # Return the updated node
-    
-    def _find_min(self, node):
-        while node.left is not None:
-            node = node.left  # Traverse to the leftmost node
-        return node  # Return the node with the smallest value
+            return self._find_recursive(node.right, key)
     
     def get_all_objects(self):
         objects = []
         self._inorder_collect_objects(self.root, objects)
-        return objects  # Return all objects in sorted order based on traversal
-
-    # Helper function for in-order traversal
+        return objects
+    
     def _inorder_collect_objects(self, node, objects):
         if node is not None:
-            self._inorder_collect_objects(node.left, objects)  # Left subtree
-            objects.append(node.value)  # Store the entire object
-            self._inorder_collect_objects(node.right, objects)  # Right subtree
+            self._inorder_collect_objects(node.left, objects)
+            objects.append(node.value)
+            self._inorder_collect_objects(node.right, objects)
+
 
 
 

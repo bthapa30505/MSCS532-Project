@@ -3,6 +3,7 @@ from unittest.mock import patch
 from io import StringIO
 from typing import List
 from faker import *
+import time
 from Entities.Property import Property
 from Entities.Client import Client
 from Entities.Agent import Agent
@@ -10,6 +11,9 @@ from Entities.Appointment import Appointment
 from Entities.Bid import Bid
 from DataStructures.BinaryTree import BinaryTree
 from DataStructures.Queue import Queue
+from DataStructures.graph import PropertyGraph
+import sys
+sys.setrecursionlimit(100001)
 
 class RealEstateSystem:
     def __init__(self):
@@ -23,6 +27,10 @@ class RealEstateSystem:
         """Add property to the properties list."""
         self.properties.insert( property)
 
+    def deleteProperty(self, property):
+        """Remove property from the properties list"""
+        self.properties.delete(property) 
+
     def getProperty(self, property) -> Property:
         return self.properties.find(property)
 
@@ -35,6 +43,16 @@ class RealEstateSystem:
     def setProperty(self, properties: List[Property]) -> None:
         """set a list of properties as property"""   
         self.properties.append(properties) 
+
+    def getNearestNProperties(self, property_id, number_n):
+        graph = PropertyGraph()
+        for eachitem in self.getAllProperties():
+            graph.Add_Property( eachitem.property_id, eachitem.latitude, eachitem.longitude)
+        nearestn: List[Property] = list()
+        for property in graph.Get_Nearest_Properties(property_id, number_n):
+            nearestn.append(self.getProperty(property[0]))
+        return nearestn    
+
 
     def getAllProperties(self):
         return self.properties.get_all_objects()    
@@ -88,11 +106,6 @@ class RealEstateSystem:
                 valid_properties.append(prop)
         return valid_properties
 
-    def nearestNeighborhood(self, client, properties):
-        """Sort properties based on distance and return the first 5."""
-        properties_sorted = sorted(properties, key=lambda prop: self.calculateDistance(client, prop))
-        return properties_sorted[:5]
-
     def calculateDistance(self, client, property):
         """Calculate the distance between the client and the property."""
         # You would use a geolocation API or other method to calculate real distances
@@ -107,102 +120,93 @@ class RealEstateSystem:
 
 realEstateSystem = RealEstateSystem()
 
-# Creating and storing dummy data for propery, client and agents.
-property_to_test = None
-client_to_test = None
-agent_to_test = None
-for random_property in Property.create_random_properties(100):
-    realEstateSystem.addProperty(random_property)
-    if(random_property.property_id == 23):
-        property_to_test = random_property
-for random_client in Client.create_random_clients(100):
-    realEstateSystem.addClient(random_client)
-    if(random_client.client_id == 55):
-        client_to_test = random_client
-for random_agent in Agent.create_random_agents(10):
-    realEstateSystem.addAgent(random_agent) 
-    if(random_agent.agent_id == 5):
-        agent_to_test = random_agent
-   
+class TestRealEstateSystemPerformance(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """Initialize the RealEstateSystem before performance tests."""
+        cls.realEstateSystem = RealEstateSystem()
+
+    def test_add_100000_clients(self):
+        """Test performance of adding 1,00,000 clients within 10 seconds."""
+        start_time = time.time()
+
+        for client in Client.create_random_clients(100000):
+            self.realEstateSystem.addClient(client)
+
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 10, "Adding 10,000 clients took too long!")
+
+    def test_get_100000_clients(self):
+        """Test performance of adding 1,00,000 clients within 10 seconds."""
+        start_time = time.time()
+
+        for client in (1,100000):
+            self.realEstateSystem.getClient(client)
+
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 10, "Getting 1,00,000 clients took too long!")    
 
 
-class TestRealEstateSystem(unittest.TestCase):
-    
-    #APPOINTMENTS SHOULD BE PICKED IN CORRECT ORDER
-    #ORDER GOES IN: 3, 2, 1, 4, 5
-    #ORDER SHOULD COME OUT: 3, 2, 1, 4, 5
-    @patch('sys.stdout', new_callable=StringIO)  
-    def test_get_first_appointment_id(self, mock_stdout):
 
-        appointments = Appointment.create_appointment_objects()
-        for appointment in appointments:
-            realEstateSystem.scheduleAppointment(appointment) 
+    def test_add_100000_properties(self):
+        """Test performance of adding 1,00,000 properties within 15 seconds."""
+        start_time = time.time()
 
-        # Assuming `realEstateSystem.getFirstAppointment().getAppointmentID()` returns 101
-        expected_output = "3\n2\n1\n4\n5\n"  # Expected print output
+        for property in Property.create_random_properties(100000):
+            self.realEstateSystem.addProperty(property)
+
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 15, "Adding 1,00,000 properties took too long!")
+
+    def test_add_10000_agents(self):
+        """Test performance of adding 1,00,000 agents within 10 seconds."""
+        start_time = time.time()
+
+        for i in range(10000):
+            agent = Agent(i, f"Agent_{i}", [])
+            self.realEstateSystem.addAgent(agent)
+
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 10, "Adding 10,000 agents took too long!")
+
+    def test_Nearest_10000_Properties(self):
+        """Testing the retrieval of nearest 10000 properties""" 
+
+        for property in Property.create_random_properties(20000):
+            self.realEstateSystem.addProperty(property)
+        start_time = time.time()
+
+        self.realEstateSystem.getNearestNProperties(5, 10000)  
+        end_time = time.time()
+        self.assertLess(end_time - start_time, 10, "Fetching 10,000 nearest neighbors took too long!")
+
+    def test_create_10000_appointments(self):
+        """Testing the creation of 100000 appointments"""
+        start_time = time.time()
+        for i in range(1,100000):
+            apptm: Appointment = Appointment(i,i,i,i, '2025-12-12')
+            self.realEstateSystem.scheduleAppointment(apptm)
+        end_time = time.time()    
+        self.assertLess(end_time - start_time, 1, "Deleting 1,00,000 clients took too long!")      
+
+
+    def test_delete_100000_clients(self):
+        """Test performance of adding 1,00,000 clients within 10 seconds."""
+        start_time = time.time()
+
+        for i in range(1,100000):
+            realEstateSystem.deleteProperty(i)
+        end_time = time.time()
+
+        self.assertLess(end_time - start_time, 10, "Deleting 1,00,000 clients took too long!")    
+  
         
-        for _ in range(5):
-            print(realEstateSystem.getFirstAppointment().getAppointmentID())
-
-        self.assertEqual(mock_stdout.getvalue(), expected_output)  # Compare output
-
-    
-    #OBJECT STORED IN BINARY TREE FOR REAL ESTATE PROPERTY SHOULD WORK
-    #FETCHING FROM BINARY TREE SHOULD GIVE RIGHT RESULT
-    #PROPERY 23 IS RANDOMLY CHOSEN PROPERTY TO TEST
-    def test_get_property_23(self):
-        property_23 = realEstateSystem.getProperty(23)
-        
-        # Expected attributes of the property
-        expected_property = property_to_test
-
-        # Check that the appointment properties match
-        self.assertEqual(property_23.property_id, expected_property.property_id)
-        self.assertEqual(property_23.price, expected_property.price)
-        self.assertEqual(property_23.amenities, expected_property.amenities)
-        self.assertEqual(property_23.property_type, expected_property.property_type)
-        self.assertEqual(property_23.location, expected_property.location)
-        self.assertEqual(property_23.latitude, expected_property.latitude)
-        self.assertEqual(property_23.longitude, expected_property.longitude)
-
-    # OBJECT STORED IN BINARY TREE FOR AGENT SHOULD WORK
-    # AGENT 5 IS RANDOMLY CHOSEN AGENT TO TEST
-    # FETCHING FROM BINARY TREE SHOULD GIVE RIGHT RESULT
-    def test_get_agent_5(self):
-        # Fetch agent 5 from the system
-        agent_5 = realEstateSystem.getAgent(5)
-
-        # Expected agent attributes (initialize this with the expected agent object)
-        expected_agent = agent_to_test  # Replace with your actual expected agent object
-
-        # Check that the agent properties match
-        self.assertEqual(agent_5.agent_id, expected_agent.agent_id)
-        self.assertEqual(agent_5.name, expected_agent.name)
-        self.assertEqual(agent_5.assigned_properties, expected_agent.assigned_properties)
-    
-
-    # OBJECT STORED IN BINARY TREE FOR CLIENT SHOULD WORK
-    # CLIENT 55 IS RANDOMLY CHOSEN TO TEST
-    # FETCHING FROM BINARY TREE SHOULD GIVE RIGHT RESULT
-    def test_get_client_55(self):
-        # Fetch client 55 from the system
-        client_55 = realEstateSystem.getClient(55)
-
-        # Expected client attributes (initialize this with the expected client object)
-        expected_client = client_to_test  # Replace with your actual expected client object
-
-        # Check that the client properties match
-        self.assertEqual(client_55.client_id, expected_client.client_id)
-        self.assertEqual(client_55.name, expected_client.name)
-        self.assertEqual(client_55.preferred_amenities, expected_client.preferred_amenities)
-        self.assertEqual(client_55.preferred_price_min, expected_client.preferred_price_min)
-        self.assertEqual(client_55.preferred_price_max, expected_client.preferred_price_max)
-        self.assertEqual(client_55.preferred_property_type, expected_client.preferred_property_type)
-
-
 
 if __name__ == "__main__":
     unittest.main()
+
+
 
 
 

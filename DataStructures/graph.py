@@ -66,20 +66,20 @@ class PropertyGraph:
         for prop in self.properties.values():
             print(f"Property {prop.id}: Latitude {prop.latitude}, Longitude {prop.longitude}")
 
-# Example usage:
+# # Example usage:
 
-# Create a PropertyGraph object
-graph = PropertyGraph()
+# # Create a PropertyGraph object
+# graph = PropertyGraph()
 
-# Add properties (id, latitude, longitude)
-graph.Add_Property(1, 40.7128, -74.0060)  # New York
-graph.Add_Property(2, 34.0522, -118.2437) # Los Angeles
-graph.Add_Property(3, 41.8781, -87.6298)  # Chicago
-graph.Add_Property(4, 29.7604, -95.3698)  # Houston
-graph.Add_Property(5, 37.7749, -122.4194) # San Francisco
+# # Add properties (id, latitude, longitude)
+# graph.Add_Property(1, 40.7128, -74.0060)  # New York
+# graph.Add_Property(2, 34.0522, -118.2437) # Los Angeles
+# graph.Add_Property(3, 41.8781, -87.6298)  # Chicago
+# graph.Add_Property(4, 29.7604, -95.3698)  # Houston
+# graph.Add_Property(5, 37.7749, -122.4194) # San Francisco
 
-# Print all properties
-graph.print_properties()
+# # Print all properties
+# graph.print_properties()
 
-# Find the 3 nearest properties to property with id 1 (New York)
-nearest = graph.Get_Nearest_Properties(1, n=3)
+# # Find the 3 nearest properties to property with id 1 (New York)
+# nearest = graph.Get_Nearest_Properties(1, n=3)
